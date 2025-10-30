@@ -1,0 +1,72 @@
+# NOTE: All values are sanitized and do not represent real systems.
+
+!
+hostname DC1-EDGE01
+!
+ip route 10.10.10.0 255.255.255.0 172.16.0.2
+ip route 10.10.10.0 255.255.255.0 172.16.0.3   ! duplicate/overlap to simulate drift
+!
+ip route 0.0.0.0 0.0.0.0 192.0.2.1
+!
+! ntp server 169.254.169.123 prefer   ! (commented out intentionally)
+!
+ip access-list extended OUTBOUND-INTERNET
+ permit ip any any
+!
+# VPN to AWS GovCloud
+crypto isakmp policy 10
+ encryption aes 256
+ hash sha256
+ authentication pre-share
+ group 14
+ lifetime 86400
+!
+crypto isakmp key AWS-GOVCLOUD-PSK address 203.0.113.10
+!
+crypto ipsec transform-set TS-AWS esp-aes 256 esp-sha256-hmac
+!
+crypto map CMAP 10 ipsec-isakmp
+ set peer 203.0.113.10
+ set transform-set TS-AWS
+ match address VPN-AWS
+!
+interface GigabitEthernet0/0
+ description MPLS_UPLINK
+ ip address 172.16.0.1 255.255.255.252
+ crypto map CMAP
+!
+ip access-list extended VPN-AWS
+ permit ip 10.10.10.0 0.0.0.255 10.20.0.0 0.0.255.255!
+!
+hostname DC3-EDGE01
+!
+ip route 0.0.0.0 0.0.0.0 198.51.100.1
+!
+ip access-list extended VPN-REMOTE-IN
+ permit ip any 10.30.0.0 0.0.255.255
+!
+!
+# Site-to-site to Azure Gov
+crypto isakmp policy 20
+ encryption aes 128
+ hash sha1
+ authentication pre-share
+ group 2
+ lifetime 28800
+!
+crypto isakmp key AZ-GOV-PSK address 198.51.100.20
+!
+crypto ipsec transform-set TS-AZ esp-aes 128 esp-sha1-hmac
+!
+crypto map CMAP-AZ 10 ipsec-isakmp
+ set peer 198.51.100.20
+ set transform-set TS-AZ
+ match address VPN-AZ
+!
+interface GigabitEthernet0/1
+ description MPLS_UPLINK
+ ip address 172.16.1.1 255.255.255.252
+ crypto map CMAP-AZ
+!
+ip access-list extended VPN-AZ
+ permit ip 10.30.0.0 0.0.255.255 10.10.10.0 0.0.0.255
