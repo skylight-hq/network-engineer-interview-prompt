@@ -56,3 +56,4 @@ We’ll use this exercise to understand your:
 
 **You do not need to prepare any configuration files or network diagrams in advance.** The interviewer will provide all materials you need during the session.
 
+© Skylight Inc. All rights reserved.
